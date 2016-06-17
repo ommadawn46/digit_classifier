@@ -1,34 +1,47 @@
 # -*- coding:utf-8 -*-
 from PIL import Image
+from urllib import request
 import numpy as np
 import struct
+import gzip
+import os
 
 
-def _loadLabels(path):
-    with open(path, 'rb') as f:
+def _download_mnist():
+    """mnistデータが存在しない場合，ダウンロードする"""
+    mnist_paths = ['mnist/train-labels-idx1-ubyte.gz', 'mnist/train-images-idx3-ubyte.gz', 'mnist/t10k-labels-idx1-ubyte.gz', 'mnist/t10k-images-idx3-ubyte.gz']
+    mnist_urls = ['http://yann.lecun.com/exdb/' + path for path in mnist_paths]
+    for path, url in zip(mnist_paths, mnist_urls):
+        if not os.path.exists('mnist'):
+            os.mkdir('mnist')
+        if not os.path.exists(path):
+            with open(path, 'wb') as f:
+                print("downloading... " + url)
+                f.write(request.urlopen(url).read())
+
+
+def _load_labels(path):
+    """ラベルデータの読み込み"""
+    print('loading labels... ' + path)
+    with gzip.open(path, 'rb') as f:
         mn, num = struct.unpack('>2i', f.read(8))
-        return np.array(struct.unpack('>%dB'%num, f.read()))
+        return np.array(struct.unpack('>%dB'%num, f.read()), dtype=np.uint8)
 
 
-def _loadImages(path):
-    with open(path, 'rb') as f:
+def _load_images(path):
+    """数字画像の読み込み"""
+    print('loading images... ' + path)
+    with gzip.open(path, 'rb') as f:
         mn, num, row, col = struct.unpack('>4i', f.read(16))
-        return np.array([struct.unpack('>%dB'%(row*col), f.read(row*col)) for _ in [0]*num])
+        return np.array([[struct.unpack('>%dB'%col, f.read(col)) for __ in [0]*row] for _ in [0]*num], dtype=np.uint8)
 
-
-trainLabels = _loadLabels('mnist/train-labels.idx1-ubyte')
-trainImages = _loadImages('mnist/train-images.idx3-ubyte')
-testLabels = _loadLabels('mnist/t10k-labels.idx1-ubyte')
-testImages = _loadImages('mnist/t10k-images.idx3-ubyte')
-
+_download_mnist()
+trainLabels = _load_labels('mnist/train-labels-idx1-ubyte.gz')
+trainImages = _load_images('mnist/train-images-idx3-ubyte.gz')
+testLabels = _load_labels('mnist/t10k-labels-idx1-ubyte.gz')
+testImages = _load_images('mnist/t10k-images-idx3-ubyte.gz')
 
 def showImage(n):
-    img = Image.new('L', (28, 28))
-    pixs = img.load()
-    i = 0
-    for y in range(28):
-        for x in range(28):
-            pixs[x, y] = int(trainImages[n][i])
-            i += 1
-    img.show()
+    """画像を表示する"""
+    Image.fromarray(trainImages[n]).show()
     print(trainLabels[n])

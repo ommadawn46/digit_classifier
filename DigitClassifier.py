@@ -2,13 +2,12 @@
 from NeuralNetwork import NeuralNetwork
 from InputCanvas import InputCanvas
 from PIL import Image, ImageFilter
-from random import random
+from numpy import random
 import numpy as np
 import tkinter
-import Mnist
 
 float_formatter = lambda x: "%.4f" % x
-np.set_printoptions(formatter={'float_kind':float_formatter})
+np.set_printoptions(formatter={'float_kind': float_formatter})
 
 
 class DigitClassifier(tkinter.Tk):
@@ -29,16 +28,29 @@ class DigitClassifier(tkinter.Tk):
         self.recog_button.pack()
         self.clear_button.pack()
 
-    def train_nn(self, epochs=100000):
+    def train_nn(self, epochs=100000, edit_image=False):
+        """ニューラルネットワークを訓練する"""
+        import Mnist
         labels = Mnist.trainLabels
         images = Mnist.trainImages
         inputs, targets = [], []
         for _ in range(epochs):
-            i = int(random() * len(labels))
+            i = int(random.random() * len(labels))
             target = np.zeros(10)
-            inputs.append(np.array(images[i])/255.0)
+            if edit_image:
+                # 訓練データを加工する
+                img = Image.fromarray(images[i])
+                new_img = Image.new('L', (28, 28))
+                new_img.paste(img.rotate(random.uniform(-45.0, 45.0)),
+                              (random.randint(-5.0, 5.0), random.randint(-5.0, 5.0)))
+                image = np.asarray(new_img).ravel()
+            else:
+                # 加工なし
+                image = images[i].ravel()
+            inputs.append(image/255.0)
             target[labels[i]] = 1.0
             targets.append(target)
+        print("start training...")
         self.nn.train(np.array(inputs), np.array(targets), n=0.01)
 
         labels = Mnist.testLabels
@@ -46,11 +58,12 @@ class DigitClassifier(tkinter.Tk):
         inputs, targets = [], []
         for i in range(len(labels)):
             target = np.zeros(10)
-            inputs.append(np.array(images[i]) / 255.0)
+            inputs.append(images[i].ravel() / 255.0)
             target[labels[i]] = 1.0
             targets.append(target)
+        print("start testing...")
         results = self.nn.test(np.array(inputs), np.array(targets))
-        print(results)
+        #print(results)
 
         overall = np.zeros((10, 10), dtype=int)
         correct = 0
@@ -63,14 +76,17 @@ class DigitClassifier(tkinter.Tk):
         print(overall)
         print(float(correct)/len(labels))
 
+        # 訓練後のパラメータを保存する
         np.save('parameters/w1_2.npy', self.nn.w1_2)
         np.save('parameters/w2_3.npy', self.nn.w2_3)
 
     def load_nn_parameters(self):
+        # パラメータを読み込む
         self.nn.w1_2 = np.load('parameters/w1_2.npy')
         self.nn.w2_3 = np.load('parameters/w2_3.npy')
 
     def recognize(self):
+        # キャンバスに書き込まれた数字を認識する
         img = self.input_canvas.getImage().filter(ImageFilter.BLUR).convert('L')
         img.thumbnail((28, 28), getattr(Image, 'ANTIALIAS'))
         img = img.point(lambda x: 255 - x)
@@ -84,7 +100,7 @@ class DigitClassifier(tkinter.Tk):
 def main():
     root = DigitClassifier()
     root.load_nn_parameters()
-    #root.train_nn()
+    #root.train_nn(edit_image=False)
     root.mainloop()
 
 

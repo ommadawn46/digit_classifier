@@ -33,11 +33,13 @@ class NeuralNetwork:
         self.act2 = act2
 
     def update(self, inputs):
+        # 順伝播
         self.a1[:-1] = inputs
         self.a2 = self.act(self.w1_2.dot(self.a1))
         self.a3 = self.act2(self.w2_3.dot(self.a2))
 
     def backprop(self, targets, n):
+        # 逆伝播
         d2_3 = self.a3 - np.array(targets)
         d1_2 = self.d_act(self.a2) * self.w2_3.T.dot(d2_3)
 
@@ -50,6 +52,7 @@ class NeuralNetwork:
         self.w1_2 -= n * d1_2.T.dot(a1)
 
     def train(self, inputPatterns, targetPatterns, n=0.1):
+        # 訓練
         err = 0.0
         for inputs, targets in zip(inputPatterns, targetPatterns):
             self.update(inputs)
@@ -59,6 +62,7 @@ class NeuralNetwork:
         return err / len(inputPatterns)
 
     def test(self, inputPatterns, targetPatterns, print_output=False):
+        # テスト
         outputs = []
         for inputs, targets in zip(inputPatterns, targetPatterns):
             self.update(inputs)

@@ -6,6 +6,7 @@ import io
 
 class InputCanvas(tkinter.Canvas):
     def on_pressed(self, event):
+        # クリックされたとき
         self.sx, self.sy = event.x, event.y
         w = self.linewidth / 2
         self.create_oval(self.sx-w, self.sy-w, self.sx+w, self.sy+w,
@@ -13,6 +14,7 @@ class InputCanvas(tkinter.Canvas):
                                 width = 0)
 
     def on_dragged(self, event):
+        # ドラッグ中
         ex, ey = event.x, event.y
         self.create_line(self.sx, self.sy, ex, ey,
                                 fill = self.linecolor,
@@ -24,10 +26,12 @@ class InputCanvas(tkinter.Canvas):
         self.sx, self.sy = event.x, event.y
 
     def getImage(self):
+        # キャンバスを画像化する
         ps = self.postscript(colormode='color')
         return Image.open(io.BytesIO(ps.encode('utf-8')))
 
     def clear(self):
+        # キャンバスを初期化する
         self.delete('all')
 
     def __init__(self, window, width, height, bg = "white"):
